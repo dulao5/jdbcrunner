@@ -1,3 +1,7 @@
+# 1.4 (2022-07-26)
+* Upgrade Apache Commons DBCP from commons-dbcp-1.4 to commons-dbcp2-2.9.0 
+* Add new option `-connLifeTime`:  コネクションの最大許容生存時間をミリ秒単位で指定します (デフォルト: ０(無限))
+
 # 1.3 (2018-08-21)
 
 * ライセンスを三条項BSDライセンスから二条項BSDライセンスに変更しました。([Commit](https://github.com/sh2/jdbcrunner/commit/13cecc665127f9df1bfe2def853cf7b0879ee3a3))
