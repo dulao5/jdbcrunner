@@ -94,6 +94,11 @@ public final class Config {
 	public static final String VAR_CONN_POOL_SIZE = "connPoolSize"; //$NON-NLS-1$
 
 	/**
+	 * Sets the maximum permitted lifetime of a connection in milliseconds.
+	 */
+	public static final String VAR_CONN_LIFE_TIME = "connLifeTime"; //$NON-NLS-1$
+
+	/**
 	 * コネクションあたりの文キャッシュ数を格納するスクリプトの変数名です。
 	 */
 	public static final String VAR_STMT_CACHE_SIZE = "stmtCacheSize"; //$NON-NLS-1$
@@ -190,6 +195,7 @@ public final class Config {
 	private static final String OPT_MEASUREMENT_TIME = "measurementTime"; //$NON-NLS-1$
 	private static final String OPT_N_AGENTS = "nAgents"; //$NON-NLS-1$
 	private static final String OPT_CONN_POOL_SIZE = "connPoolSize"; //$NON-NLS-1$
+	private static final String OPT_CONN_LIFE_TIME = "connLifeTime"; //$NON-NLS-1$
 	private static final String OPT_STMT_CACHE_SIZE = "stmtCacheSize"; //$NON-NLS-1$
 	private static final String OPT_AUTO_COMMIT = "autoCommit"; //$NON-NLS-1$
 	private static final String OPT_SLEEP_TIME = "sleepTime"; //$NON-NLS-1$
@@ -221,6 +227,7 @@ public final class Config {
 	private int nTxTypes = 1;
 	private int nAgents = 1;
 	private int connPoolSize = 1;
+	private long connLifeTime = 0;  // zero or less indicates an infinite
 	private int stmtCacheSize = 10;
 	private boolean isAutoCommit = true;
 	private long[] sleepTimes = new long[] { 0L };
@@ -402,6 +409,8 @@ public final class Config {
 
 		options.addOption(OPT_CONN_POOL_SIZE, true,
 				Resources.getString("Config.USAGE_CONN_POOL_SIZE")); //$NON-NLS-1$
+		options.addOption(OPT_CONN_LIFE_TIME, true,
+				Resources.getString("Config.USAGE_CONN_LIFE_TIME")); //$NON-NLS-1$
 
 		options.addOption(OPT_STMT_CACHE_SIZE, true,
 				Resources.getString("Config.USAGE_STMT_CACHE_SIZE")); //$NON-NLS-1$
@@ -461,6 +470,7 @@ public final class Config {
 			configString.append("Number of tx types   : " + nTxTypes + SEPARATOR); //$NON-NLS-1$
 			configString.append("Number of agents     : " + nAgents + SEPARATOR); //$NON-NLS-1$
 			configString.append("Connection pool size : " + connPoolSize + SEPARATOR); //$NON-NLS-1$
+			configString.append("Connection life time : " + connLifeTime + SEPARATOR); //$NON-NLS-1$
 			configString.append("Statement cache size : " + stmtCacheSize + SEPARATOR); //$NON-NLS-1$
 			configString.append("Auto commit          : " + isAutoCommit + SEPARATOR); //$NON-NLS-1$
 			configString.append("Sleep time           : "); //$NON-NLS-1$
@@ -649,6 +659,15 @@ public final class Config {
 	 */
 	public int getConnPoolSize() {
 		return connPoolSize;
+	}
+
+	/**
+	 * コネクションの生存時間(milliseconds)を返します。
+	 *
+	 * @return コネクションの生存時間 (milliseconds)
+	 */
+	public long getConnLifeTime() {
+		return connLifeTime;
 	}
 
 	/**
@@ -1058,6 +1077,12 @@ public final class Config {
 			this.connPoolSize = ((Number) variable).intValue();
 		}
 
+		variable = script.getVariable(VAR_CONN_LIFE_TIME);
+
+		if (variable instanceof Number) {
+			this.connLifeTime = ((Number) variable).intValue();
+		}
+
 		variable = script.getVariable(VAR_STMT_CACHE_SIZE);
 
 		if (variable instanceof Number) {
@@ -1210,6 +1235,16 @@ public final class Config {
 						Resources.getString("Config.ILLEGAL_NUMBER_CONN_POOL_SIZE"), e); //$NON-NLS-1$
 			}
 		}
+
+		if (cl.hasOption(OPT_CONN_LIFE_TIME)) {
+			try {
+				this.connLifeTime = Long.parseLong(cl.getOptionValue(OPT_CONN_LIFE_TIME));
+			} catch (NumberFormatException e) {
+				throw new ApplicationException(
+						Resources.getString("Config.ILLEGAL_NUMBER_CONN_LIFE_TIME"), e); //$NON-NLS-1$
+			}
+		}
+
 
 		if (cl.hasOption(OPT_STMT_CACHE_SIZE)) {
 			try {
