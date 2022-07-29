@@ -64,20 +64,19 @@ function init() {
         info("-nAgents: Number of Agents  (default: 16)");
         info("-param0 : Number of records (default : 10000)");
         info("-param1 : Number of records (default : 32)");
-    }
 
-    // run in all agents
-    oltpTableSize = param0;
-    oltpTableCount = param1;
-    if (oltpTableSize == 0) {
-        oltpTableSize = 10000;
-    }
-    if (oltpTableCount == 0) {
-        oltpTableCount = 32;
-    }
+        oltpTableSize = param0;
+        oltpTableCount = param1;
 
-    // run in agent 0 only
-    if (getId() == 0) {
+        if (oltpTableSize == 0) {
+            oltpTableSize = 10000;
+        }
+        putData("OLTPTableSize", oltpTableSize);
+        if (oltpTableCount == 0) {
+            oltpTableCount = 32;
+        }
+        putData("OLTPTableCount", oltpTableCount);
+
         info("Number of records : " + oltpTableSize);
         info("Number of tables : " + oltpTableCount);
 
@@ -101,6 +100,12 @@ function init() {
 }
 
 function run() {
+    if (!oltpTableSize) {
+        oltpTableSize = Number(getData("OLTPTableSize"));
+    }
+    if (!oltpTableCount) {
+        oltpTableCount = Number(getData("OLTPTableCount"));
+    }
     var agentId = getId();
     info("run : agent " + agentId);
     for (var tableId = agentId + 1; tableId <= oltpTableCount; tableId += nAgents) {

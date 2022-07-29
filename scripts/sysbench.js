@@ -32,6 +32,8 @@ var DIST_SPECIAL = 3;
 
 // Number of records in the test table
 var oltpTableSize;
+// Number of tables in the test
+var oltpTableCount;
 
 // Database product name
 var databaseProductName;
@@ -62,9 +64,24 @@ var oltpDistRes = 75;
 function init() {
     if (getId() == 0) {
         info("Tiny sysbench");
-        
-        putData("OltpTableSize", fetchAsArray("SELECT COUNT(*) FROM sbtest")[0][0]);
-        info("Number of records : " + Number(getData("OltpTableSize")));
+        info("-nAgents: Number of Agents  (default: 16)");
+        info("-param0 : Number of records (default : 10000)");
+        info("-param1 : Number of records (default : 32)");
+
+        oltpTableSize = param0;
+        oltpTableCount = param1;
+
+        if (oltpTableSize == 0) {
+            oltpTableSize = 10000;
+        }
+        putData("OLTPTableSize", oltpTableSize);
+        if (oltpTableCount == 0) {
+            oltpTableCount = 32;
+        }
+        putData("OLTPTableCount", oltpTableCount);
+
+        info("Number of records : " + oltpTableSize);
+        info("Number of tables : " + oltpTableCount);
         
         putData("DatabaseProductName", getDatabaseProductName());
     }
@@ -72,7 +89,10 @@ function init() {
 
 function run() {
     if (!oltpTableSize) {
-        oltpTableSize = Number(getData("OltpTableSize"));
+        oltpTableSize = Number(getData("OLTPTableSize"));
+    }
+    if (!oltpTableCount) {
+        oltpTableCount = Number(getData("OLTPTableCount"));
     }
     
     if (!databaseProductName) {
@@ -91,11 +111,12 @@ function oltpExecuteRequest() {
         retry = false;
         
         try {
+            var tableName = getRandomTableName(oltpTableCount);
             // Point selects
             for (var count = 0; count < oltpPointSelects; count++) {
                 var id = getRandomId();
                 
-                query("SELECT c FROM sbtest WHERE id = $int", id);
+                query("SELECT c FROM " + tableName + " WHERE id = $int", id);
             }
             
             // Simple ranges
@@ -103,7 +124,7 @@ function oltpExecuteRequest() {
                 var from = getRangeRandomId();
                 var to = from + oltpRangeSize - 1;
                 
-                query("SELECT c FROM sbtest WHERE id BETWEEN $int AND $int", from, to);
+                query("SELECT c FROM " + tableName + " WHERE id BETWEEN $int AND $int", from, to);
             }
             
             // Sum ranges
@@ -111,7 +132,7 @@ function oltpExecuteRequest() {
                 var from = getRangeRandomId();
                 var to = from + oltpRangeSize - 1;
                 
-                query("SELECT SUM(k) FROM sbtest WHERE id BETWEEN $int AND $int", from, to);
+                query("SELECT SUM(k) FROM " + tableName + " WHERE id BETWEEN $int AND $int", from, to);
             }
             
             // Order ranges
@@ -119,7 +140,7 @@ function oltpExecuteRequest() {
                 var from = getRangeRandomId();
                 var to = from + oltpRangeSize - 1;
                 
-                query("SELECT c FROM sbtest WHERE id BETWEEN $int AND $int ORDER BY c", from, to);
+                query("SELECT c FROM " + tableName + " WHERE id BETWEEN $int AND $int ORDER BY c", from, to);
             }
             
             // Distinct ranges
@@ -127,7 +148,7 @@ function oltpExecuteRequest() {
                 var from = getRangeRandomId();
                 var to = from + oltpRangeSize - 1;
                 
-                query("SELECT DISTINCT c FROM sbtest WHERE id BETWEEN $int AND $int ORDER BY c",
+                query("SELECT DISTINCT c FROM " + tableName + " WHERE id BETWEEN $int AND $int ORDER BY c",
                     from, to);
             }
             
@@ -136,7 +157,7 @@ function oltpExecuteRequest() {
                 for (var count = 0; count < oltpIndexUpdates; count++) {
                     var id = getRandomId();
                     
-                    execute("UPDATE sbtest SET k = k + 1 WHERE id = $int", id);
+                    execute("UPDATE " + tableName + " SET k = k + 1 WHERE id = $int", id);
                 }
                 
                 // Non index updates
@@ -144,7 +165,7 @@ function oltpExecuteRequest() {
                     var c = getRandomString();
                     var id = getRandomId();
                     
-                    execute("UPDATE sbtest SET c = $string WHERE id = $int", c, id);
+                    execute("UPDATE " + tableName + " SET c = $string WHERE id = $int", c, id);
                 }
                 
                 // Delete and insert
@@ -154,10 +175,10 @@ function oltpExecuteRequest() {
                 do {
                     // PostgreSQL may fail to delete the row.
                     // We will retry it if such a situation occurs.
-                    deletedCount = execute("DELETE FROM sbtest WHERE id = $int", id);
+                    deletedCount = execute("DELETE FROM " + tableName + " WHERE id = $int", id);
                 } while (deletedCount == 0);
                 
-                execute("INSERT INTO sbtest (id, k, c, pad) VALUES ($int, 0, ' ', "
+                execute("INSERT INTO " + tableName + " (id, k, c, pad) VALUES ($int, 0, ' ', "
                     + "'aaaaaaaaaaffffffffffrrrrrrrrrreeeeeeeeeeyyyyyyyyyy')", id);
             }
             
@@ -212,6 +233,11 @@ function getRandomId() {
     }
     
     return r;
+}
+
+function getRandomTableName(oltpTableCount) {
+    var tableId = Math.floor(Math.random() * oltpTableCount) + 1;
+    return "sbtest" + tableId;
 }
 
 function rndFuncUniform() {
