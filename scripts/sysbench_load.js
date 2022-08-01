@@ -63,7 +63,7 @@ function init() {
         info("Tiny sysbench - data loader");
         info("-nAgents: Number of Agents  (default: 16)");
         info("-param0 : Number of records (default : 10000)");
-        info("-param1 : Number of records (default : 32)");
+        info("-param1 : Number of tables (default : 32)");
 
         oltpTableSize = param0;
         oltpTableCount = param1;
