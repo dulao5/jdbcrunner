@@ -105,11 +105,6 @@ function run() {
 // Application functions ---------------------------------------------
 
 function oltpExecuteRequest() {
-    var retry = false;
-    
-    do {
-        retry = false;
-        
         try {
             var tableName = getRandomTableName(oltpTableCount);
             // Point selects
@@ -185,15 +180,20 @@ function oltpExecuteRequest() {
             // Commit
             commit();
         } catch (e) {
-            if (isDeadlock(e)) {
-                warn("[Agent " + getId() + "] Deadlock detected.");
-                rollback();
-                retry = true;
+            if (isIgnoreError(e)) {
+                warn("[Agent " + getId() + "] ignore error");
+                try { rollback(); } catch (e) {}
+            } else if (/com.mysql.cj.jdbc.exceptions.MySQLTransactionRollbackException/.test(String(e))) {
+                warn("[Agent " + getId() + "] com.mysql.cj.jdbc.exceptions.MySQLTransactionRollbackException" );
+            } else if (/com.mysql.cj.jdbc.exceptions.CommunicationsException/.test(String(e))) {
+                    warn("[Agent " + getId() + "] com.mysql.cj.jdbc.exceptions.CommunicationsException" );
+            } else if (/java.net.SocketTimeoutException/.test(String(e))) {
+                    warn("[Agent " + getId() + "] java.net.SocketTimeoutException" );
             } else {
+                warn("[Agent " + getId() + "] other error" + String(e));
                 error(e + getScriptStackTrace(e));
             }
         }
-    } while (retry);
 }
 
 function getRandomString() {
@@ -291,22 +291,37 @@ function sbRnd() {
     return random(0, 1073741822);
 }
 
-function isDeadlock(exception) {
+function isIgnoreError(exception) {
+    var ignoreErrors = {
+        "Oracle": [
+            60 // Deadlock
+        ],
+        "MySQL": [
+            1213, // Deadlock
+            2013, // connection lost
+            9007  // conflict
+        ],
+        "PostgreSQL": [
+            "40P01" // deadlock
+        ],
+    }
     var javaException = exception.javaException;
     
     if (javaException instanceof java.sql.SQLException) {
-        if (databaseProductName == "Oracle"
-            && javaException.getErrorCode() == 60) {
-            return true;
-        } else if (databaseProductName == "MySQL"
-            && javaException.getErrorCode() == 1213) {
-            return true;
-        } else if (databaseProductName == "PostgreSQL"
-            && javaException.getSQLState() == "40P01") {
-            return true;
-        } else {
-            return false;
+        var ignoreErrorCodes = ignoreErrors[databaseProductName];
+        var errorCode;
+        switch(databaseProductName) {
+            case "Oracle":
+            case "MySQL":
+                errorCode = javaException.getErrorCode();
+                break;
+            case "PostgreSQL":
+                errorCode = javaException.getSQLState();
+                break;
+            default:
+                return false;
         }
+        return (ignoreErrorCodes.indexOf(errorCode) != -1);
     } else {
         return false;
     }

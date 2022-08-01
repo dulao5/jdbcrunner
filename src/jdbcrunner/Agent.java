@@ -219,7 +219,7 @@ public class Agent implements Runnable {
 			connection = manager.getConnection();
 			helper.setConnection(connection);
 			helper.callInit();
-		} catch (SQLException e) {
+		} catch (Exception e) {
 			throw new ApplicationException(Resources.getString("Agent.SQL_EXCEPTION"), e); //$NON-NLS-1$
 		} finally {
 			if (connection != null) {
@@ -232,15 +232,26 @@ public class Agent implements Runnable {
 		}
 	}
 
-	private void callRun(Helper helper) throws ApplicationException {
+	private boolean callRun(Helper helper) throws ApplicationException {
 		Connection connection = null;
+		boolean result = false;
 
 		try {
 			connection = manager.getConnection();
 			helper.setConnection(connection);
 			helper.callRun();
+			result = true;
 		} catch (SQLException e) {
-			throw new ApplicationException(Resources.getString("Agent.SQL_EXCEPTION"), e); //$NON-NLS-1$
+		//} catch (Exception e) {
+			// throw new ApplicationException(Resources.getString("Agent.SQL_EXCEPTION"), e); //$NON-NLS-1$
+			putMessage(new Message(Message.Level.ERROR,
+					Resources.getString("Agent.SQL_EXCEPTION"), e)); //$NON-NLS-1$
+			result = false;
+			try {
+				Thread.sleep(1000);	// 1秒待つ
+			} catch (InterruptedException e2) {
+				// 何もしない
+			}
 		} finally {
 			if (connection != null) {
 				try {
@@ -250,6 +261,7 @@ public class Agent implements Runnable {
 				}
 			}
 		}
+		return result;
 	}
 
 	private void callFin(Helper helper) throws ApplicationException {
