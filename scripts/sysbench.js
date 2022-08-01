@@ -105,95 +105,89 @@ function run() {
 // Application functions ---------------------------------------------
 
 function oltpExecuteRequest() {
-        try {
-            var tableName = getRandomTableName(oltpTableCount);
-            // Point selects
-            for (var count = 0; count < oltpPointSelects; count++) {
-                var id = getRandomId();
-                
-                query("SELECT c FROM " + tableName + " WHERE id = $int", id);
-            }
+    try {
+        var tableName = getRandomTableName(oltpTableCount);
+        // Point selects
+        for (var count = 0; count < oltpPointSelects; count++) {
+            var id = getRandomId();
             
-            // Simple ranges
-            for (var count = 0; count < oltpSimpleRanges; count++) {
-                var from = getRangeRandomId();
-                var to = from + oltpRangeSize - 1;
-                
-                query("SELECT c FROM " + tableName + " WHERE id BETWEEN $int AND $int", from, to);
-            }
-            
-            // Sum ranges
-            for (var count = 0; count < oltpSumRanges; count++) {
-                var from = getRangeRandomId();
-                var to = from + oltpRangeSize - 1;
-                
-                query("SELECT SUM(k) FROM " + tableName + " WHERE id BETWEEN $int AND $int", from, to);
-            }
-            
-            // Order ranges
-            for (var count = 0; count < oltpOrderRanges; count++) {
-                var from = getRangeRandomId();
-                var to = from + oltpRangeSize - 1;
-                
-                query("SELECT c FROM " + tableName + " WHERE id BETWEEN $int AND $int ORDER BY c", from, to);
-            }
-            
-            // Distinct ranges
-            for (var count = 0; count < oltpDistinctRanges; count++) {
-                var from = getRangeRandomId();
-                var to = from + oltpRangeSize - 1;
-                
-                query("SELECT DISTINCT c FROM " + tableName + " WHERE id BETWEEN $int AND $int ORDER BY c",
-                    from, to);
-            }
-            
-            if (!oltpReadOnly) {
-                // Index updates
-                for (var count = 0; count < oltpIndexUpdates; count++) {
-                    var id = getRandomId();
-                    
-                    execute("UPDATE " + tableName + " SET k = k + 1 WHERE id = $int", id);
-                }
-                
-                // Non index updates
-                for (var count = 0; count < oltpNonIndexUpdates; count++) {
-                    var c = getRandomString();
-                    var id = getRandomId();
-                    
-                    execute("UPDATE " + tableName + " SET c = $string WHERE id = $int", c, id);
-                }
-                
-                // Delete and insert
-                var deletedCount = 0;
-                var id = getRandomId();
-                
-                do {
-                    // PostgreSQL may fail to delete the row.
-                    // We will retry it if such a situation occurs.
-                    deletedCount = execute("DELETE FROM " + tableName + " WHERE id = $int", id);
-                } while (deletedCount == 0);
-                
-                execute("INSERT INTO " + tableName + " (id, k, c, pad) VALUES ($int, 0, ' ', "
-                    + "'aaaaaaaaaaffffffffffrrrrrrrrrreeeeeeeeeeyyyyyyyyyy')", id);
-            }
-            
-            // Commit
-            commit();
-        } catch (e) {
-            if (isIgnoreError(e)) {
-                warn("[Agent " + getId() + "] ignore error");
-                try { rollback(); } catch (e) {}
-            } else if (/com.mysql.cj.jdbc.exceptions.MySQLTransactionRollbackException/.test(String(e))) {
-                warn("[Agent " + getId() + "] com.mysql.cj.jdbc.exceptions.MySQLTransactionRollbackException" );
-            } else if (/com.mysql.cj.jdbc.exceptions.CommunicationsException/.test(String(e))) {
-                    warn("[Agent " + getId() + "] com.mysql.cj.jdbc.exceptions.CommunicationsException" );
-            } else if (/java.net.SocketTimeoutException/.test(String(e))) {
-                    warn("[Agent " + getId() + "] java.net.SocketTimeoutException" );
-            } else {
-                warn("[Agent " + getId() + "] other error" + String(e));
-                error(e + getScriptStackTrace(e));
-            }
+            query("SELECT c FROM " + tableName + " WHERE id = $int", id);
         }
+        
+        // Simple ranges
+        for (var count = 0; count < oltpSimpleRanges; count++) {
+            var from = getRangeRandomId();
+            var to = from + oltpRangeSize - 1;
+            
+            query("SELECT c FROM " + tableName + " WHERE id BETWEEN $int AND $int", from, to);
+        }
+        
+        // Sum ranges
+        for (var count = 0; count < oltpSumRanges; count++) {
+            var from = getRangeRandomId();
+            var to = from + oltpRangeSize - 1;
+            
+            query("SELECT SUM(k) FROM " + tableName + " WHERE id BETWEEN $int AND $int", from, to);
+        }
+        
+        // Order ranges
+        for (var count = 0; count < oltpOrderRanges; count++) {
+            var from = getRangeRandomId();
+            var to = from + oltpRangeSize - 1;
+            
+            query("SELECT c FROM " + tableName + " WHERE id BETWEEN $int AND $int ORDER BY c", from, to);
+        }
+        
+        // Distinct ranges
+        for (var count = 0; count < oltpDistinctRanges; count++) {
+            var from = getRangeRandomId();
+            var to = from + oltpRangeSize - 1;
+            
+            query("SELECT DISTINCT c FROM " + tableName + " WHERE id BETWEEN $int AND $int ORDER BY c",
+                from, to);
+        }
+        
+        if (!oltpReadOnly) {
+            // Index updates
+            for (var count = 0; count < oltpIndexUpdates; count++) {
+                var id = getRandomId();
+                
+                execute("UPDATE " + tableName + " SET k = k + 1 WHERE id = $int", id);
+            }
+            
+            // Non index updates
+            for (var count = 0; count < oltpNonIndexUpdates; count++) {
+                var c = getRandomString();
+                var id = getRandomId();
+                
+                execute("UPDATE " + tableName + " SET c = $string WHERE id = $int", c, id);
+            }
+            
+            // Delete and insert
+            var deletedCount = 0;
+            var id = getRandomId();
+            
+            do {
+                // PostgreSQL may fail to delete the row.
+                // We will retry it if such a situation occurs.
+                deletedCount = execute("DELETE FROM " + tableName + " WHERE id = $int", id);
+            } while (deletedCount == 0);
+            
+            execute("INSERT INTO " + tableName + " (id, k, c, pad) VALUES ($int, 0, ' ', "
+                + "'aaaaaaaaaaffffffffffrrrrrrrrrreeeeeeeeeeyyyyyyyyyy')", id);
+        }
+        
+        // Commit
+        commit();
+    } catch (e) {
+        if (isIgnoreError(e)) {
+            warn("[Agent " + getId() + "] ignore error" + String(e));
+            try { rollback(); } catch (e) {}
+        } else {
+            warn("[Agent " + getId() + "] other error" + String(e));
+            error(e + getScriptStackTrace(e));
+        }
+    }
 }
 
 function getRandomString() {
@@ -292,7 +286,23 @@ function sbRnd() {
 }
 
 function isIgnoreError(exception) {
-    var ignoreErrors = {
+    // Non-SQLException
+
+    var ignoreErrorTypeRegs = [
+        /com\.mysql\.cj\.jdbc\.exceptions\.MySQLTransactionRollbackException/,
+        /com\.mysql\.cj\.jdbc\.exceptions\.CommunicationsException/,
+        /java\.net\.SocketTimeoutException/,
+    ];
+    var exceptionType = String(exception);
+    for (var i = 0; i < ignoreErrorTypeRegs.length; i++) {
+        if (ignoreErrorTypeRegs[i].test(exceptionType)) {
+            return true;
+        }
+    }
+
+    // SQLException
+
+    var ignoreSQLExceptionConfig = {
         "Oracle": [
             60 // Deadlock
         ],
@@ -308,7 +318,7 @@ function isIgnoreError(exception) {
     var javaException = exception.javaException;
     
     if (javaException instanceof java.sql.SQLException) {
-        var ignoreErrorCodes = ignoreErrors[databaseProductName];
+        var ignoreErrorCodes = ignoreSQLExceptionConfig[databaseProductName];
         var errorCode;
         switch(databaseProductName) {
             case "Oracle":
