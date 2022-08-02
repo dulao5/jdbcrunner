@@ -166,15 +166,11 @@ function oltpExecuteRequest() {
             // Delete and insert
             var deletedCount = 0;
             var id = getRandomId();
-            
-            do {
-                // PostgreSQL may fail to delete the row.
-                // We will retry it if such a situation occurs.
-                deletedCount = execute("DELETE FROM " + tableName + " WHERE id = $int", id);
-            } while (deletedCount == 0);
-            
-            execute("INSERT INTO " + tableName + " (id, k, c, pad) VALUES ($int, 0, ' ', "
-                + "'aaaaaaaaaaffffffffffrrrrrrrrrreeeeeeeeeeyyyyyyyyyy')", id);
+            deletedCount = execute("DELETE FROM " + tableName + " WHERE id = $int", id);
+            if (deletedCount > 0) {
+                execute("INSERT INTO " + tableName + " (id, k, c, pad) VALUES ($int, 0, ' ', "
+                    + "'aaaaaaaaaaffffffffffrrrrrrrrrreeeeeeeeeeyyyyyyyyyy')", id);
+            }
         }
         
         // Commit
