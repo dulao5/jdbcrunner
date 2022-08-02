@@ -47,8 +47,8 @@ var nAgents = 16;
 
 // Application settings ----------------------------------------------
 
-var BATCH_SIZE = 100;
-var COMMIT_SIZE = 1000;
+var BATCH_SIZE = 10000;
+var COMMIT_SIZE = 10000;
 
 var oltpTableSize;
 var oltpTableCount;
@@ -64,9 +64,11 @@ function init() {
         info("-nAgents: Number of Agents  (default: 16)");
         info("-param0 : Number of records (default : 10000)");
         info("-param1 : Number of tables (default : 32)");
+        info("-param2 : (for TiDB) Create index before insert. 1 or 0 (default : 0)");
 
         oltpTableSize = param0;
         oltpTableCount = param1;
+        createIndexBeforeInsert = param2;
 
         if (oltpTableSize == 0) {
             oltpTableSize = 10000;
@@ -76,20 +78,36 @@ function init() {
             oltpTableCount = 32;
         }
         putData("OLTPTableCount", oltpTableCount);
+        if (createIndexBeforeInsert == 0) {
+            createIndexBeforeInsert = 0;
+        } else {
+            createIndexBeforeInsert = 1;
+        }
+        putData("CreateIndexBeforeInsert", createIndexBeforeInsert);
 
         info("Number of records : " + oltpTableSize);
         info("Number of tables : " + oltpTableCount);
+        info("Create index before insert : " + createIndexBeforeInsert);
 
         for (var tableId = 1; tableId <= oltpTableCount; tableId++) {
             if (getDatabaseProductName() == "Oracle") {
                 dropTableOracle(tableId);
                 createTableOracle(tableId);
+                if (createIndexBeforeInsert == 1) {
+                    createIndexOracle(tableId);
+                }
             } else if (getDatabaseProductName() == "MySQL") {
                 dropTableMySQL(tableId);
                 createTableMySQL(tableId);
+                if (createIndexBeforeInsert == 1) {
+                    createIndexMySQL(tableId);
+                }
             } else if (getDatabaseProductName() == "PostgreSQL") {
                 dropTablePostgreSQL(tableId);
                 createTablePostgreSQL(tableId);
+                if (createIndexBeforeInsert == 1) {
+                    createIndexPostgreSQL(tableId);
+                }
             } else {
                 error(getDatabaseProductName() + " is not supported yet.");
             }
@@ -107,7 +125,6 @@ function run() {
         oltpTableCount = Number(getData("OLTPTableCount"));
     }
     var agentId = getId();
-    info("run : agent " + agentId);
     for (var tableId = agentId + 1; tableId <= oltpTableCount; tableId += nAgents) {
         var tableName = "sbtest" + tableId;
         info("Loading " + tableName + "...");
@@ -152,17 +169,23 @@ function run() {
 
 function fin() {
     var agentId = getId();
-    info("fin() : agent " + agentId);
-    info("oltpTableCount: " + oltpTableCount);
+    oltpTableCount = Number(getData("OLTPTableCount"));
+    createIndexBeforeInsert = Number(getData("CreateIndexBeforeInsert"));
     for (var tableId = agentId + 1; tableId <= oltpTableCount; tableId += nAgents) {
         if (getDatabaseProductName() == "Oracle") {
-            createIndexOracle(tableId);
+            if (createIndexBeforeInsert == 0) {
+                createIndexOracle(tableId);
+            }
             gatherStatsOracle();
         } else if (getDatabaseProductName() == "MySQL") {
-            createIndexMySQL(tableId);
+            if (createIndexBeforeInsert == 0) {
+                createIndexMySQL(tableId);
+            }
             gatherStatsMySQL(tableId);
         } else if (getDatabaseProductName() == "PostgreSQL") {
-            createIndexPostgreSQL(tableId);
+            if (createIndexBeforeInsert == 0) {
+                createIndexPostgreSQL(tableId);
+            }
             gatherStatsPostgreSQL(tableId);
         } else {
             error(getDatabaseProductName() + " is not supported yet.");
