@@ -226,9 +226,9 @@ public class Manager {
 	* Manually invalidates a connection, effectively requesting the pool to 
 	* try to close it, remove it from the pool and reclaim pool capacity.
 	*/
-	public void invalidateConnection(Connection connection) throws IllegalStateException {
-		dataSource.invalidateConnection(connection);
-	}
+	//public void invalidateConnection(Connection connection) throws IllegalStateException {
+	//	dataSource.invalidateConnection(connection);
+	//}
 
 	/**
 	 * 初期化処理の完了ラッチを返します。
@@ -368,11 +368,43 @@ public class Manager {
 		dataSource.setPassword(config.getJdbcPass());
 		dataSource.setDefaultAutoCommit(config.isAutoCommit());
 		dataSource.setInitialSize(config.getConnPoolSize());
-		dataSource.setMaxTotal(config.getConnPoolSize());
-		dataSource.setMaxConnLifetimeMillis(config.getConnLifeTime());
+		
 
-		// MaxIdleはデフォルト値が8。無制限に変更する
-		dataSource.setMaxIdle(DATASOURCE_NO_LIMIT);
+		if (config.getConnLifeTime() > 0) {
+			int minIdle = 16;
+			int maxIdle = 32;
+			dataSource.setMinIdle(minIdle);
+			dataSource.setMaxIdle(maxIdle);
+			dataSource.setMaxTotal(config.getConnPoolSize() + maxIdle + 1);
+			dataSource.setNumTestsPerEvictionRun(-1);
+
+			// 例え ConnLifeTime を 32 分間にすると
+
+			// 更に、10秒間余裕を持つ
+			dataSource.setMaxConnLifetimeMillis(config.getConnLifeTime()+10000);
+
+			dataSource.setTimeBetweenEvictionRunsMillis(config.getConnLifeTime()/32);  // 回収間隔を設定
+																						  // 例：回収間隔は ConnLifeTime/32=1分間
+			dataSource.setSoftMinEvictableIdleTimeMillis(config.getConnLifeTime()/16); // 最小空き時間を設定(但し, minIdle数を保証する)
+																					      // 例：最小空き時間は ConnLifeTime/16=2分間
+			dataSource.setMinEvictableIdleTimeMillis(config.getConnLifeTime()/8);     // 最小空き時間を設定
+																						  // 例：最小空き時間は ConnLifeTime/8=4分間
+
+			dataSource.setTestWhileIdle(true);
+
+			dataSource.setLifo(false); // FIFO , 一番先頭に返されるものを取り出す
+
+			// こうすると
+			// connPoolSize に + maxIdle の余裕があり
+			// idle の connection が ConnLifeTime の半分の時間内で、無効にならない
+			// 回収 : ConnLifeTime/16 = 2分間以上空いている場合に回収される
+			// 回収 : 2分 ~ 4分間の間の寿命の接続が、minIdleのpoolに保存される
+			// 回収 : ConnLifeTime/8 = 4分間以上空いている場合に強制に回収される
+
+		}
+
+		// 謎の rollback を解消
+		dataSource.setRollbackOnReturn(false);
 
 		if (config.getStmtCacheSize() > 0) {
 			dataSource.setPoolPreparedStatements(true);
