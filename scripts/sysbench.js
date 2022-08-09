@@ -177,10 +177,10 @@ function oltpExecuteRequest() {
         commit();
     } catch (e) {
         if (isIgnoreError(e)) {
-            warn("[Agent " + getId() + "] ignore error" + String(e));
+            warn("[Agent " + getId() + "] ignore error " + String(e));
             try { rollback(); } catch (e) {}
         } else {
-            warn("[Agent " + getId() + "] other error" + String(e));
+            warn("[Agent " + getId() + "] other error " + String(e));
             error(e + getScriptStackTrace(e));
         }
     }
@@ -288,6 +288,7 @@ function isIgnoreError(exception) {
         /com\.mysql\.cj\.jdbc\.exceptions\.MySQLTransactionRollbackException/,
         /com\.mysql\.cj\.jdbc\.exceptions\.CommunicationsException/,
         /java\.net\.SocketTimeoutException/,
+        /Write\s+conflict/,
     ];
     var exceptionType = String(exception);
     for (var i = 0; i < ignoreErrorTypeRegs.length; i++) {
