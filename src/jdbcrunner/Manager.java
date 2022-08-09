@@ -401,6 +401,9 @@ public class Manager {
 			// 回収 : 2分 ~ 4分間の間の寿命の接続が、minIdleのpoolに保存される
 			// 回収 : ConnLifeTime/8 = 4分間以上空いている場合に強制に回収される
 
+		} else {
+			dataSource.setMaxIdle(DATASOURCE_NO_LIMIT);
+			dataSource.setMaxTotal(config.getConnPoolSize());
 		}
 
 		// 謎の rollback を解消
