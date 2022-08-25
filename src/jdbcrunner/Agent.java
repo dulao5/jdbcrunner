@@ -232,6 +232,14 @@ public class Agent implements Runnable {
 		}
 	}
 
+	private Boolean ignoreConnectionError(SQLException e) {
+		String CannotGetAConnectionException = "Cannot get a connection"; // java.sql.SQLException: Cannot get a connection, pool error Unable to activate object
+		String CouldNotCreateConnectionException = "Could not create connection to database server"; // java.sql.SQLNonTransientConnectionException: Could not create connection to database server. Attempted reconnect 4 times. Giving up.
+
+		return e.getMessage().contains(CannotGetAConnectionException)
+				|| e.getMessage().contains(CouldNotCreateConnectionException);
+	}
+
 	private void callRun(Helper helper) throws ApplicationException {
 		Connection connection = null;
 
@@ -240,7 +248,22 @@ public class Agent implements Runnable {
 			helper.setConnection(connection);
 			helper.callRun();
 		} catch (SQLException e) {
-			throw new ApplicationException(Resources.getString("Agent.SQL_EXCEPTION"), e); //$NON-NLS-1$
+			if (ignoreConnectionError(e)) {
+				putMessage(new Message(Message.Level.WARN,
+					"Skip connect exception and retry after 0.5s : " +
+					Resources.getString("Agent.EXCEPTION_1") + id
+							+ Resources.getString("Agent.EXCEPTION_2")
+							+ "; " + e.getMessage()
+							,
+					e)); //$NON-NLS-1$
+				try {
+					Thread.sleep(500);
+				} catch (InterruptedException e1) {
+					// 何もしない
+				}
+			} else {
+				throw new ApplicationException(Resources.getString("Agent.SQL_EXCEPTION"), e); //$NON-NLS-1$
+			}
 		} finally {
 			if (connection != null) {
 				try {
