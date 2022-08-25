@@ -240,7 +240,18 @@ public class Agent implements Runnable {
 			helper.setConnection(connection);
 			helper.callRun();
 		} catch (SQLException e) {
-			throw new ApplicationException(Resources.getString("Agent.SQL_EXCEPTION"), e); //$NON-NLS-1$
+			putMessage(new Message(Message.Level.WARN,
+					"Skip error and retry after 0.5s : " +
+					Resources.getString("Agent.EXCEPTION_1") + id
+							+ Resources.getString("Agent.EXCEPTION_2") 
+							+ "; " + e.getMessage()
+							,
+					e)); //$NON-NLS-1$
+			try {
+				Thread.sleep(500);
+			} catch (InterruptedException e1) {
+				// 何もしない
+			}
 		} finally {
 			if (connection != null) {
 				try {
