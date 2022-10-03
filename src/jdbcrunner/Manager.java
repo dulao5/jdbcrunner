@@ -369,7 +369,22 @@ public class Manager {
 		dataSource.setDefaultAutoCommit(config.isAutoCommit());
 		dataSource.setInitialSize(config.getConnPoolSize());
 		dataSource.setMaxTotal(config.getConnPoolSize());
+
+		// for tidb scale-in-out
 		dataSource.setMaxConnLifetimeMillis(config.getConnLifeTime());
+		dataSource.setLogExpiredConnections(false); // skip logging expired connections
+		
+		// setValidationQuery when using oracle or tidb/mysql/postgresql
+		if (config.getJdbcUrl().contains("oracle")) {
+			dataSource.setValidationQuery("select 1 from dual");
+		} else {
+			dataSource.setValidationQuery("select 1");
+		}
+		dataSource.setValidationQueryTimeout(1); // set timeout to 1 second
+		dataSource.setTestOnBorrow(true); // validate connections on borrow
+		dataSource.setTestOnReturn(true); // validate connections on return
+		dataSource.setAutoCommitOnReturn(false); // do not auto-commit on return
+		dataSource.setRollbackOnReturn(false); // do not rollback on return
 
 		// MaxIdleはデフォルト値が8。無制限に変更する
 		dataSource.setMaxIdle(DATASOURCE_NO_LIMIT);
