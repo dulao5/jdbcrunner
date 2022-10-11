@@ -288,6 +288,9 @@ function isIgnoreError(exception) {
         /com\.mysql\.cj\.jdbc\.exceptions\.MySQLTransactionRollbackException/,
         /com\.mysql\.cj\.jdbc\.exceptions\.CommunicationsException/,
         /java\.net\.SocketTimeoutException/,
+        /PessimisticLockNotFound/,
+        /TxnLockNotFound/,
+        /java\.sql\.SQLException/,
     ];
     var exceptionType = String(exception);
     for (var i = 0; i < ignoreErrorTypeRegs.length; i++) {
